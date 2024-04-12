@@ -11,7 +11,7 @@ const client = new TwitterApi({
 
 function getRandomLifeQuote() {
   return new Promise((resolve, reject) => {
-    const category = 'life';
+    const category = 'movie';
     request.get({
       url: 'https://api.api-ninjas.com/v1/quotes?category=' + category,
       headers: {
