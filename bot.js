@@ -1,7 +1,7 @@
 const { TwitterApi } = require('twitter-api-v2');
 const request = require('request');
-require('dotenv').config();
 const readline = require('readline');
+require('dotenv').config();
 
 const client = new TwitterApi({
   appKey: process.env.APP_KEY,
@@ -40,30 +40,43 @@ function truncateText(text, maxLength) {
 }
 
 async function sendTweet() {
+  try {
+    const quote = await getRandomLifeQuote('movies'); // Default category 'movies', can be configurable
+    const maxTweetLength = 280;
+    const maxQuoteLength = maxTweetLength - 5; // Reserve 5 characters for the author
+
+    const truncatedQuote = truncateText(quote.quote, maxQuoteLength);
+    const tweetText = `${truncatedQuote}\n- ${quote.author}`;
+
+    // Prompt user for confirmation before tweeting
+    const confirmation = await askForConfirmation(tweetText);
+    if (confirmation) {
+      const truncatedTweet = truncateText(tweetText, maxTweetLength);
+      const tweet = await client.v2.tweet(truncatedTweet);
+      console.log('Tweet sent successfully:', tweet.data.text);
+    } else {
+      console.log('Tweet cancelled by user.');
+    }
+  } catch (error) {
+    console.error('Error sending tweet:', error.errors);
+  }
+}
+
+function askForConfirmation(tweetText) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
 
-  rl.question('Enter a category (e.g., movies, sports, love): ', async (category) => {
-    rl.close();
-
-    try {
-      const quote = await getRandomLifeQuote(category);
-      const maxTweetLength = 280;
-      const maxQuoteLength = maxTweetLength - 5; // Reserve 5 characters for the author
-
-      const truncatedQuote = truncateText(quote.quote, maxQuoteLength);
-      const tweetText = `${truncatedQuote}\n- ${quote.author}`;
-      const truncatedTweet = truncateText(tweetText, maxTweetLength);
-
-      const tweet = await client.v2.tweet(truncatedTweet);
-      console.log('Tweet sent successfully:', tweet.data.text);
-    } catch (error) {
-      console.error('Error sending tweet:', error.errors);
-    }
+  return new Promise((resolve) => {
+    rl.question(`Tweet the following?\n\n${tweetText}\n\nConfirm (yes/no): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase().trim() === 'yes');
+    });
   });
 }
 
+// Example usage:
+// Call sendTweet() to fetch a random quote and prompt for confirmation before tweeting
 sendTweet();
 
