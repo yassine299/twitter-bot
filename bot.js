@@ -10,10 +10,12 @@ const client = new TwitterApi({
   accessSecret: process.env.ACCESS_SECRET
 });
 
-function getRandomLifeQuote(category) {
+function getRandomQuoteByCategory(category) {
   return new Promise((resolve, reject) => {
+    const apiUrl = `https://api.api-ninjas.com/v1/quotes?category=${category}`;
+
     request.get({
-      url: `https://api.api-ninjas.com/v1/quotes?category=${category}`,
+      url: apiUrl,
       headers: {
         'X-Api-Key': process.env.NINJA_KEY
       },
@@ -40,23 +42,40 @@ function truncateText(text, maxLength) {
 }
 
 async function sendTweet() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
   try {
-    const quote = await getRandomLifeQuote('movies'); // Default category 'movies', can be configurable
-    const maxTweetLength = 280;
-    const maxQuoteLength = maxTweetLength - 5; // Reserve 5 characters for the author
+    // Prompt user to enter quote category
+    rl.question('Enter the category of quotes you want (e.g., movies, life, love): ', async (category) => {
+      rl.close();
 
-    const truncatedQuote = truncateText(quote.quote, maxQuoteLength);
-    const tweetText = `${truncatedQuote}\n- ${quote.author}`;
+      // Fetch a random quote based on user-entered category
+      const quote = await getRandomQuoteByCategory(category.trim().toLowerCase());
 
-    // Prompt user for confirmation before tweeting
-    const confirmation = await askForConfirmation(tweetText);
-    if (confirmation) {
-      const truncatedTweet = truncateText(tweetText, maxTweetLength);
-      const tweet = await client.v2.tweet(truncatedTweet);
-      console.log('Tweet sent successfully:', tweet.data.text);
-    } else {
-      console.log('Tweet cancelled by user.');
-    }
+      if (!quote) {
+        console.log(`No quotes found for category: ${category}`);
+        return;
+      }
+
+      const maxTweetLength = 280;
+      const maxQuoteLength = maxTweetLength - 5; // Reserve 5 characters for the author
+
+      const truncatedQuote = truncateText(quote.quote, maxQuoteLength);
+      const tweetText = `${truncatedQuote}\n- ${quote.author}`;
+
+      // Prompt user for confirmation before tweeting
+      const confirmation = await askForConfirmation(tweetText);
+      if (confirmation) {
+        const truncatedTweet = truncateText(tweetText, maxTweetLength);
+        const tweet = await client.v2.tweet(truncatedTweet);
+        console.log('Tweet sent successfully:', tweet.data.text);
+      } else {
+        console.log('Tweet cancelled by user.');
+      }
+    });
   } catch (error) {
     console.error('Error sending tweet:', error.errors);
   }
@@ -76,7 +95,7 @@ function askForConfirmation(tweetText) {
   });
 }
 
-// Example usage:
-// Call sendTweet() to fetch a random quote and prompt for confirmation before tweeting
+// Call sendTweet() to start the process of tweeting a quote
 sendTweet();
+
 
