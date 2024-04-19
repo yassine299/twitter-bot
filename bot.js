@@ -66,10 +66,17 @@ async function sendTweet() {
       const truncatedQuote = truncateText(quote.quote, maxQuoteLength);
       const tweetText = `${truncatedQuote}\n- ${quote.author}`;
 
+      // Retrieve hashtags based on the selected category
+      const hashtags = getHashtagsForCategory(category.trim().toLowerCase());
+      const hashtagString = hashtags.length > 0 ? ` ${hashtags.join(' ')}` : '';
+
+      // Append hashtags to the tweet text
+      const tweetWithHashtags = tweetText + hashtagString;
+
       // Prompt user for confirmation before tweeting
-      const confirmation = await askForConfirmation(tweetText);
+      const confirmation = await askForConfirmation(tweetWithHashtags);
       if (confirmation) {
-        const truncatedTweet = truncateText(tweetText, maxTweetLength);
+        const truncatedTweet = truncateText(tweetWithHashtags, maxTweetLength);
         const tweet = await client.v2.tweet(truncatedTweet);
         console.log('Tweet sent successfully:', tweet.data.text);
       } else {
@@ -95,7 +102,18 @@ function askForConfirmation(tweetText) {
   });
 }
 
+function getHashtagsForCategory(category) {
+  const hashtagMap = {
+    movies: ['#MovieQuotes', '#Film'],
+    life: ['#LifeQuotes', '#Inspiration'],
+    love: ['#LoveQuotes', '#Romance'],
+    books: ['#BookQuotes', '#Reading'],
+    travel: ['#TravelQuotes', '#Adventure']
+    // Add more categories and corresponding hashtags as needed
+  };
+
+  return hashtagMap[category] || [];
+}
+
 // Call sendTweet() to start the process of tweeting a quote
 sendTweet();
-
-
